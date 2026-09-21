@@ -1,7 +1,7 @@
 {
   "title": "24/7 লাইভ বাংলা টিভি",
   "logo": "https://upload.wikimedia.org/wikipedia/commons/e/ef/Youtube_logo.png",
-  "ticker": "ব্রেকিং নিউজ: আমাদের ২৪/৭ লাইভ চ্যানেলে আপনাকে স্বাগতম ● দেশ বিদেশের খবর ও বিনোদন দেখতে চোখ রাখুন...",
+  "ticker": "ব্রেকিং নিউজ: আমাদের ২৪/৭ লাইভ চ্যানেলে স্বাগতম ● লাইভ সম্প্রচার চলছে...",
   "stream": {
     "type": "m3u8",
     "url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
