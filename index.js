@@ -5,7 +5,14 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-// stream.json ফাইল পড়ার ফাংশন
+// CORS উন্মুক্ত করা যাতে অন্য যেকোনো অ্যাপেও m3u8 চলে
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', '*');
+  next();
+});
+
+// stream.json পড়ার ফাংশন
 function getConfig() {
   try {
     const raw = fs.readFileSync(path.join(__dirname, 'stream.json'), 'utf8');
@@ -13,7 +20,7 @@ function getConfig() {
   } catch (err) {
     return {
       title: "24/7 লাইভ টিভি",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/e/ef/Youtube_logo.png",
+      logo: "",
       ticker: "লাইভ সম্প্রচার চলছে...",
       stream: {
         type: "m3u8",
@@ -24,7 +31,7 @@ function getConfig() {
   }
 }
 
-// মূল ব্রডকাস্ট ইন্টারফেস
+// ১. মূল লাইভ টিভি ব্রাউজার ইন্টারফেস
 app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -54,10 +61,9 @@ app.get('/', (req, res) => {
           max-height: 675px;
           background: #000;
           overflow: hidden;
-          box-shadow: 0 0 50px rgba(0,0,0,0.9);
         }
 
-        /* ভিডিওতে ক্লিক বা টানাটানি সম্পূর্ণ বন্ধ */
+        /* কোনো প্রকার টানাটানি বা ক্লিক কাজ করবে না */
         video {
           width: 100%;
           height: 100%;
@@ -66,7 +72,7 @@ app.get('/', (req, res) => {
           background: #000;
         }
 
-        /* চ্যানেল লোগো (উপরে ডান কোনায়) */
+        /* পার্মানেন্ট চ্যানেল লোগো */
         .channel-logo {
           position: absolute;
           top: 25px;
@@ -78,7 +84,7 @@ app.get('/', (req, res) => {
           filter: drop-shadow(0 2px 6px rgba(0,0,0,0.8));
         }
 
-        /* লাইভ ব্যাজ (উপরে বাঁ কোনায়) */
+        /* লাইভ ব্যাজ */
         .live-tag {
           position: absolute;
           top: 25px;
@@ -94,7 +100,6 @@ app.get('/', (req, res) => {
           display: flex;
           align-items: center;
           gap: 6px;
-          box-shadow: 0 2px 8px rgba(220,38,38,0.5);
         }
         .live-dot {
           width: 8px;
@@ -105,7 +110,7 @@ app.get('/', (req, res) => {
         }
         @keyframes blink { from { opacity: 1; } to { opacity: 0.2; } }
 
-        /* নিচের রানিং শিরোনাম (Breaking News Ticker) */
+        /* নিচের রানিং শিরোনাম (Ticker) */
         .ticker-bar {
           position: absolute;
           bottom: 0;
@@ -130,19 +135,18 @@ app.get('/', (req, res) => {
           display: flex;
           align-items: center;
           flex-shrink: 0;
-          font-size: 14px;
         }
         .ticker-text {
           white-space: nowrap;
           padding-left: 100%;
-          animation: scrollText 25s linear infinite;
+          animation: scrollText 24s linear infinite;
         }
         @keyframes scrollText {
           0% { transform: translateX(0); }
           100% { transform: translateX(-100%); }
         }
 
-        /* সাইড কন্ট্রোল বাটন (সাউন্ড ও ফুলস্ক্রিন) */
+        /* সাউন্ড ও ফুলস্ক্রিন বাটন */
         .tv-controls {
           position: absolute;
           bottom: 48px;
@@ -162,28 +166,19 @@ app.get('/', (req, res) => {
           font-weight: 600;
           backdrop-filter: blur(5px);
         }
-        .ctrl-btn:hover {
-          background: rgba(255,255,255,0.2);
-        }
       </style>
     </head>
     <body>
-
       <div class="tv-wrapper" id="tvWrapper">
         <div class="live-tag"><span class="live-dot"></span> LIVE 24/7</div>
-        
         <img id="logoImg" src="" class="channel-logo" alt="Logo">
-
-        <!-- লাইভ ভিডিও প্লেয়ার -->
         <video id="tvPlayer" autoplay muted playsinline></video>
 
-        <!-- রানিং নিউজ স্ট্রিপ -->
         <div class="ticker-bar">
           <div class="ticker-title">শিরোনাম</div>
           <div class="ticker-text" id="tickerText">লাইভ সম্প্রচার লোড হচ্ছে...</div>
         </div>
 
-        <!-- কাস্টম বাটন -->
         <div class="tv-controls">
           <button class="ctrl-btn" id="soundBtn" onclick="toggleSound()">🔊 সাউন্ড অন</button>
           <button class="ctrl-btn" onclick="toggleScreen()">⛶ ফুলস্ক্রিন</button>
@@ -210,7 +205,6 @@ app.get('/', (req, res) => {
                 logoImg.style.display = 'none';
               }
 
-              // লিংক পরিবর্তন হলে বা প্রথমবার প্লে হলে
               if (currentUrl !== data.stream.url) {
                 currentUrl = data.stream.url;
 
@@ -226,7 +220,6 @@ app.get('/', (req, res) => {
                     video.play();
                   }
                 } else {
-                  // MP4 ভিডিওর ক্ষেত্রে সার্ভার সময় অনুযায়ী লাইভ সিঙ্ক
                   video.src = currentUrl;
                   video.addEventListener('loadedmetadata', () => {
                     if (data.currentOffset) {
@@ -239,7 +232,6 @@ app.get('/', (req, res) => {
             });
         }
 
-        // পেজ লোডে সিঙ্ক এবং প্রতি ২০ সেকেন্ড পর পর ডাটা চেক
         syncBroadcast();
         setInterval(syncBroadcast, 20000);
 
@@ -266,7 +258,17 @@ app.get('/', (req, res) => {
   `);
 });
 
-// লাইভ সিঙ্ক রুট
+// ২. Render থেকে সরাসরি M3U8 লিংক পাওয়ার রুট (যা অন্য প্লেয়ারে ব্যবহার করবেন)
+app.get('/live.m3u8', (req, res) => {
+  const config = getConfig();
+  if (config.stream && config.stream.url) {
+    res.redirect(config.stream.url);
+  } else {
+    res.redirect('https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8');
+  }
+});
+
+// ৩. লাইভ সিঙ্ক এন্ডপয়েন্ট
 app.get('/api/live-status', (req, res) => {
   const config = getConfig();
   let currentOffset = 0;
@@ -286,5 +288,5 @@ app.get('/api/live-status', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`24/7 TV Server is running on port ${PORT}`);
+  console.log(`Live TV server running on port ${PORT}`);
 });
