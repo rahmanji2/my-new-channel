@@ -57,7 +57,7 @@ app.get('/', (req, res) => {
       <script>
         const video = document.getElementById('videoPlayer');
         // আসল লাইভ স্ট্রিম লিংক
-        const streamUrl = 'https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8';
+        const streamUrl = 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8';
 
         if (Hls.isSupported()) {
           const hls = new Hls();
