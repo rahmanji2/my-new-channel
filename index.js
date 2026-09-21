@@ -1,97 +1,83 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
 const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-function getVideos() {
-  try {
-    const data = fs.readFileSync(path.join(__dirname, 'channels.json'), 'utf8');
-    return JSON.parse(data);
-  } catch (e) {
-    return [];
-  }
-}
-
-// টিভি চ্যানেল পেজ
+// সরাসরি মূল লিংকে টিভি প্লেয়ার
 app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>24/7 Live TV Channel</title>
+      <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
       <style>
-        body { margin: 0; background: #0b0f19; color: #fff; font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
-        .tv-frame { width: 90%; max-width: 900px; background: #1a2234; padding: 15px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); text-align: center; }
-        .live-badge { display: inline-block; background: red; color: white; padding: 4px 12px; border-radius: 4px; font-weight: bold; font-size: 13px; margin-bottom: 10px; animation: blink 1.5s infinite; }
-        @keyframes blink { 50% { opacity: 0.5; } }
-        video { width: 100%; border-radius: 8px; background: #000; outline: none; }
-        .info { margin-top: 10px; color: #94a3b8; font-size: 15px; }
+        body {
+          margin: 0;
+          background: #000;
+          color: #fff;
+          font-family: Arial, sans-serif;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: 100vh;
+        }
+        .container {
+          width: 95%;
+          max-width: 900px;
+          text-align: center;
+        }
+        .badge {
+          background: red;
+          color: white;
+          padding: 4px 10px;
+          border-radius: 4px;
+          font-weight: bold;
+          font-size: 14px;
+          display: inline-block;
+          margin-bottom: 12px;
+        }
+        video {
+          width: 100%;
+          border-radius: 10px;
+          box-shadow: 0 4px 20px rgba(255,255,255,0.1);
+          background: #111;
+        }
       </style>
     </head>
     <body>
-      <div class="tv-frame">
-        <span class="live-badge">● LIVE 24/7</span>
-        <h2 style="margin: 5px 0 15px 0;">My 24/7 Online TV Channel</h2>
-        
-        <!-- টিভি প্লেয়ার (ইউজার পজ করতে পারবে না, টানতে পারবে না) -->
-        <video id="tvPlayer" autoplay muted playsinline></video>
-        
-        <div class="info" id="status">Syncing with Live Broadcast...</div>
+      <div class="container">
+        <span class="badge">● LIVE 24/7</span>
+        <video id="videoPlayer" controls autoplay muted playsinline></video>
       </div>
 
       <script>
-        const video = document.getElementById('tvPlayer');
-        const status = document.getElementById('status');
-        let playlist = [];
-        let currentIndex = 0;
+        const video = document.getElementById('videoPlayer');
+        // আসল লাইভ স্ট্রিম লিংক
+        const streamUrl = 'https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8';
 
-        // প্লেলিস্ট ফেচ করা
-        fetch('/api/playlist')
-          .then(res => res.json())
-          .then(data => {
-            playlist = data;
-            if (playlist.length > 0) {
-              playChannel(0);
-            } else {
-              status.innerText = "No programs available.";
-            }
+        if (Hls.isSupported()) {
+          const hls = new Hls();
+          hls.loadSource(streamUrl);
+          hls.attachMedia(video);
+          hls.on(Hls.Events.MANIFEST_PARSED, function () {
+            video.play();
           });
-
-        function playChannel(index) {
-          currentIndex = index;
-          video.src = playlist[currentIndex].url;
-          status.innerText = "Now Playing: " + (playlist[currentIndex].title || "Live Stream");
-          video.play().catch(() => {
-            status.innerText = "Click anywhere to enable audio!";
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = streamUrl;
+          video.addEventListener('loadedmetadata', function () {
+            video.play();
           });
         }
-
-        // একটি ভিডিও শেষ হলে স্বয়ংক্রিয়ভাবে পরবর্তী ভিডিও চলবে (লুপ আকারে)
-        video.addEventListener('ended', () => {
-          let nextIndex = (currentIndex + 1) % playlist.length;
-          playChannel(nextIndex);
-        });
-
-        // লাইভ ফিল রাখার জন্য ক্লিক করলে আনমিউট হবে
-        window.addEventListener('click', () => {
-          if (video.muted) {
-            video.muted = false;
-          }
-        }, { once: true });
       </script>
     </body>
     </html>
   `);
 });
 
-// প্লেলিস্ট ডেটা এন্ডপয়েন্ট
-app.get('/api/playlist', (req, res) => {
-  res.json(getVideos());
-});
-
 app.listen(PORT, () => {
-  console.log('TV Channel running on port ' + PORT);
+  console.log('Server is running on port ' + PORT);
 });
