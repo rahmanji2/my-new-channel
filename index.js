@@ -1,18 +1,19 @@
 const express = require('express');
+const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-// CORS উন্মুক্ত করা যাতে অন্য যেকোনো অ্যাপেও m3u8 চলে
+// সকল ডোমেইন থেকে অ্যাক্সেস পাওয়ার জন্য CORS অন
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', '*');
   next();
 });
 
-// stream.json পড়ার ফাংশন
+// stream.json ফাইল থেকে ডেটা পড়ার ফাংশন
 function getConfig() {
   try {
     const raw = fs.readFileSync(path.join(__dirname, 'stream.json'), 'utf8');
@@ -31,7 +32,7 @@ function getConfig() {
   }
 }
 
-// ১. মূল লাইভ টিভি ব্রাউজার ইন্টারফেস
+// ১. ব্রাউজারে ২৪/৭ ফুল লাইভ টিভি পেজ (টানাটানি ছাড়া, লোগো ও শিরোনামসহ)
 app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -62,8 +63,7 @@ app.get('/', (req, res) => {
           background: #000;
           overflow: hidden;
         }
-
-        /* কোনো প্রকার টানাটানি বা ক্লিক কাজ করবে না */
+        /* ভিডিও টানা বা পজ বন্ধ */
         video {
           width: 100%;
           height: 100%;
@@ -71,8 +71,7 @@ app.get('/', (req, res) => {
           pointer-events: none;
           background: #000;
         }
-
-        /* পার্মানেন্ট চ্যানেল লোগো */
+        /* টিভি লোগো */
         .channel-logo {
           position: absolute;
           top: 25px;
@@ -83,7 +82,6 @@ app.get('/', (req, res) => {
           pointer-events: none;
           filter: drop-shadow(0 2px 6px rgba(0,0,0,0.8));
         }
-
         /* লাইভ ব্যাজ */
         .live-tag {
           position: absolute;
@@ -109,8 +107,7 @@ app.get('/', (req, res) => {
           animation: blink 1s infinite alternate;
         }
         @keyframes blink { from { opacity: 1; } to { opacity: 0.2; } }
-
-        /* নিচের রানিং শিরোনাম (Ticker) */
+        /* রানিং শিরোনাম (Ticker) */
         .ticker-bar {
           position: absolute;
           bottom: 0;
@@ -135,6 +132,7 @@ app.get('/', (req, res) => {
           display: flex;
           align-items: center;
           flex-shrink: 0;
+          font-size: 14px;
         }
         .ticker-text {
           white-space: nowrap;
@@ -145,8 +143,7 @@ app.get('/', (req, res) => {
           0% { transform: translateX(0); }
           100% { transform: translateX(-100%); }
         }
-
-        /* সাউন্ড ও ফুলস্ক্রিন বাটন */
+        /* বাটন */
         .tv-controls {
           position: absolute;
           bottom: 48px;
@@ -212,11 +209,11 @@ app.get('/', (req, res) => {
                   if (Hls.isSupported()) {
                     if (hls) hls.destroy();
                     hls = new Hls();
-                    hls.loadSource(currentUrl);
+                    hls.loadSource('/live.m3u8'); // নিজস্ব প্রক্সি লিংক থেকে প্লে
                     hls.attachMedia(video);
                     hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
                   } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                    video.src = currentUrl;
+                    video.src = '/live.m3u8';
                     video.play();
                   }
                 } else {
@@ -258,17 +255,32 @@ app.get('/', (req, res) => {
   `);
 });
 
-// ২. Render থেকে সরাসরি M3U8 লিংক পাওয়ার রুট (যা অন্য প্লেয়ারে ব্যবহার করবেন)
-app.get('/live.m3u8', (req, res) => {
-  const config = getConfig();
-  if (config.stream && config.stream.url) {
-    res.redirect(config.stream.url);
-  } else {
-    res.redirect('https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8');
+// ২. সরাসরি রিভার্স প্রক্সি M3U8 লিংক (মূল অরিজিনাল লিংক কখনই প্রকাশ পাবে না)
+app.get('/live.m3u8', async (req, res) => {
+  try {
+    const config = getConfig();
+    const targetStream = config.stream && config.stream.url 
+      ? config.stream.url 
+      : 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8';
+
+    // সার্ভার ব্যাকগ্রাউন্ড থেকে ডেটা ফেচ করে পাইপ করবে
+    const response = await axios({
+      method: 'GET',
+      url: targetStream,
+      responseType: 'stream',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+      }
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+    response.data.pipe(res);
+  } catch (error) {
+    res.status(500).send('Error streaming M3U8: ' + error.message);
   }
 });
 
-// ৩. লাইভ সিঙ্ক এন্ডপয়েন্ট
+// ৩. লাইভ সিঙ্ক লজিক
 app.get('/api/live-status', (req, res) => {
   const config = getConfig();
   let currentOffset = 0;
