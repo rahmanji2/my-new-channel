@@ -1,18 +1,17 @@
 #!/bin/bash
 
+# ১. লাইভ ডিরেক্টরি নিশ্চিত করা
 mkdir -p /app/live
 
-# ১. যদি নিজস্ব logo.png না থাকে, তবে একটি চমৎকার ক্লিয়ার টিভি লোগো ডায়নামিকালি জেনারেট হবে
+# ২. লোগো ফাইল নিশ্চিত করা (ফাইল মিসিং থাকলে অটোমেটিক স্বচ্ছ ব্যাকআপ তৈরি করবে)
 if [ ! -f /app/logo.png ] || [ ! -s /app/logo.png ]; then
-  ffmpeg -y -f lavfi -i color=c=red@0.85:s=90x34 -vf \
-    "drawtext=fontfile=/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf:text='LIVE TV':fontcolor=white:fontsize=15:x=(w-text_w)/2:y=(h-text_h)/2" \
-    -frames:v 1 /app/logo.png
+  ffmpeg -y -f lavfi -i color=c=black@0.0:s=60x30 -frames:v 1 /app/logo.png
 fi
 
-# ২. Nginx চালু
+# ৩. Nginx ওয়েব সার্ভার ব্যাকগ্রাউন্ডে চালু করা
 nginx
 
-# ৩. বাফার-মুক্ত ২৪/৭ লাইভ লুপ
+# ৪. ২৪/৭ বাফার-মুক্ত লাইভ সম্প্রচার লুপ
 while true; do
   while IFS= read -r video_url || [ -n "$video_url" ]; do
     [[ "$video_url" =~ ^#.*$ ]] && continue
@@ -27,9 +26,9 @@ while true; do
       -stream_loop -1 -i /app/logo.png \
       -filter_complex \
       "[0:v]fps=20,scale=480:270[base]; \
-       [1:v]scale=75:-1[logo]; \
-       [base][logo]overlay=W-w-12:12[v_logo]; \
-       [v_logo]drawbox=y=ih-22:color=black@0.65:width=iw:height=22:t=fill, \
+       [1:v]scale=55:-1[logo]; \
+       [base][logo]overlay=W-w-15:15[v_logo]; \
+       [v_logo]drawbox=y=ih-22:color=black@0.6:width=iw:height=22:t=fill, \
        drawtext=fontfile=/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf:text='Welcome to My TV 24/7, live stream channel':fontcolor=yellow:fontsize=11:x=w-mod(t*60\,w+text_w):y=h-16[v_out]" \
       -map "[v_out]" -map 0:a? \
       -c:v libx264 -preset ultrafast -tune zerolatency \
