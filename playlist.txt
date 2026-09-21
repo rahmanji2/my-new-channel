@@ -1,2 +1,1 @@
-file 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
-file 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'
+file 'file 'https://archive.org/download/BigBuckBunny_328/BigBuckBunny_512kb.mp4'
