@@ -18,7 +18,7 @@ app.get('/', (req, res) => {
 // M3U8 লিংক রুট
 app.get('/live.m3u8', (req, res) => {
   // আপনার আসল m3u8 লিংকটি এখানে বসান
-  const targetStream = 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8';
+  const targetStream = 'https://stream.mux.com/1rmQU74oQmsN7wxHl15tDYKBAV901Pb02pF1VrLz00TOhk.m3u8';
   res.redirect(targetStream);
 });
 
