@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-# প্রয়োজনীয় প্যাকেজ ও ফন্ট ইনস্টল
+# প্রয়োজনীয় প্যাকেজ ইনস্টল
 RUN apk update && apk add --no-cache \
     ffmpeg \
     nginx \
@@ -8,6 +8,7 @@ RUN apk update && apk add --no-cache \
     fontconfig \
     freetype \
     wget \
+    curl \
     ca-certificates \
     bash
 
@@ -17,9 +18,9 @@ WORKDIR /app
 COPY . /app
 RUN chmod +x /app/start.sh
 
-# Nginx লাইভ HLS কনফিগারেশন
-RUN echo 'events {} http { server { listen 8080; location /live/ { root /app; add_header Access-Control-Allow-Origin *; types { application/vnd.apple.mpegurl m3u8; video/mp2t ts; } } location /health { return 200 "OK"; } } }' > /etc/nginx/nginx.conf
+# Nginx সরাসরি পোর্ট 10000 এবং /app/live ডিরেক্টরি পরিবেশন করবে
+RUN echo 'events {} http { server { listen 10000; location /live/ { root /app; add_header Access-Control-Allow-Origin *; types { application/vnd.apple.mpegurl m3u8; video/mp2t ts; } } location /health { return 200 "OK"; } } }' > /etc/nginx/nginx.conf
 
-EXPOSE 8080
+EXPOSE 10000
 
 CMD ["/app/start.sh"]
