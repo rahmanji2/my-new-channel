@@ -29,7 +29,7 @@ while true; do
        [1:v]scale=55:-1[logo]; \
        [base][logo]overlay=W-w-15:15[v_logo]; \
        [v_logo]drawbox=y=ih-22:color=black@0.6:width=iw:height=22:t=fill, \
-       drawtext=fontfile=/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf:text='Welcome to My TV 24/7, live stream channel':fontcolor=yellow:fontsize=11:x=w-mod(t*60\,w+text_w):y=h-16[v_out]" \
+       drawtext=fontfile=/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf:text='Welcome to My TV 24/7, any req just now add':fontcolor=yellow:fontsize=11:x=w-mod(t*60\,w+text_w):y=h-16[v_out]" \
       -map "[v_out]" -map 0:a? \
       -c:v libx264 -preset ultrafast -tune zerolatency \
       -b:v 280k -maxrate 320k -bufsize 600k \
