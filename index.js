@@ -1,61 +1,45 @@
 const express = require('express');
+const axios = require('axios');
 const app = express();
 
 const PORT = process.env.PORT || 3000;
 
+// CORS উন্মুক্ত করা যাতে যেকোনো প্লেয়ারে চলে
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', '*');
+  next();
+});
+
+// মূল পেজ (চেক করার জন্য)
 app.get('/', (req, res) => {
-  res.send(`
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <title>Multi-Channel Live Stream</title>
-      <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-      <style>
-        body { margin: 0; background: #0f172a; color: #fff; font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
-        .player-container { width: 90%; max-width: 850px; background: #1e293b; padding: 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; }
-        video { width: 100%; border-radius: 8px; background: #000; margin-top: 15px; }
-        select { padding: 10px 15px; border-radius: 6px; background: #334155; color: white; border: 1px solid #475569; font-size: 16px; cursor: pointer; }
-      </style>
-    </head>
-    <body>
-      <div class="player-container">
-        <h2>Live TV Player</h2>
-        
-        <!-- GitHub থেকে চ্যানেল বা লিংক যোগ/বিয়োগ করুন -->
-        <select id="channelSelect" onchange="playChannel(this.value)">
-          <option value="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8">Channel 1 (Test Stream)</option>
-          <option value="https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8">Channel 2 (Sample 2)</option>
-        </select>
+  res.send('IPTV Server is running! Use /live.m3u8 or /playlist.m3u to play.');
+});
 
-        <video id="video" controls autoplay muted></video>
-      </div>
+// ১. সরাসরি .m3u8 স্ট্রিম দেওয়ার রুট
+app.get('/live.m3u8', async (req, res) => {
+  // এখানে আসল লাইভ স্ট্রিমের লিংকটি বসিয়ে দিন
+  const targetStream = 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8';
+  
+  // সরাসরি লাইভ স্ট্রিমে রিডাইরেক্ট করবে
+  res.redirect(targetStream);
+});
 
-      <script>
-        const video = document.getElementById('video');
-        let hls = null;
+// ২. সম্পূর্ণ M3U প্লেলিস্ট রুট (VLC / TiviMate / OTT Player-এ দেওয়ার জন্য)
+app.get('/playlist.m3u', (req, res) => {
+  const host = req.get('host');
+  const protocol = req.protocol;
 
-        function playChannel(url) {
-          if (Hls.isSupported()) {
-            if (hls) { hls.destroy(); }
-            hls = new Hls();
-            hls.loadSource(url);
-            hls.attachMedia(video);
-            hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
-          } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = url;
-            video.play();
-          }
-        }
+  const playlist = `#EXTM3U
+#EXTINF:-1 tvg-id="1" tvg-name="My Live TV" group-title="Live", My Live TV
+${protocol}://${host}/live.m3u8
+`;
 
-        // ডিফল্ট প্রথম চ্যানেল চালানো
-        playChannel(document.getElementById('channelSelect').value);
-      </script>
-    </body>
-    </html>
-  `);
+  res.setHeader('Content-Type', 'application/x-mpegURL');
+  res.setHeader('Content-Disposition', 'inline; filename="playlist.m3u"');
+  res.send(playlist);
 });
 
 app.listen(PORT, () => {
-  console.log('Server running on port ' + PORT);
+  console.log(`IPTV Server is running on port ${PORT}`);
 });
