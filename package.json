@@ -1,12 +1,13 @@
 {
   "name": "my-iptv-channel",
   "version": "1.0.0",
+  "description": "24/7 Live TV Channel on Render",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "axios": "^1.7.2"
+    "axios": "^1.7.2",
+    "express": "^4.19.2"
   }
 }
