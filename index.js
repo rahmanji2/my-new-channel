@@ -3,31 +3,59 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-// ভিডিও প্লেয়ার পেজ
 app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Video Player</title>
-        <style>
-          body { font-family: Arial, sans-serif; text-align: center; background: #121212; color: #fff; padding-top: 50px; }
-          video { max-width: 90%; width: 700px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        </style>
-      </head>
-      <body>
-        <h2>My 24/7 Video Stream / Player</h2>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <title>Multi-Channel Live Stream</title>
+      <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+      <style>
+        body { margin: 0; background: #0f172a; color: #fff; font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+        .player-container { width: 90%; max-width: 850px; background: #1e293b; padding: 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; }
+        video { width: 100%; border-radius: 8px; background: #000; margin-top: 15px; }
+        select { padding: 10px 15px; border-radius: 6px; background: #334155; color: white; border: 1px solid #475569; font-size: 16px; cursor: pointer; }
+      </style>
+    </head>
+    <body>
+      <div class="player-container">
+        <h2>Live TV Player</h2>
         
-        <!-- সোর্স লিংকে আপনার আসল ভিডিও ফাইল (mp4) এর ডিরেক্ট লিংক দিন -->
-        <video controls autoplay muted loop>
-          <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
-          Your browser does not support the video tag.
-        </video>
-      </body>
+        <!-- GitHub থেকে চ্যানেল বা লিংক যোগ/বিয়োগ করুন -->
+        <select id="channelSelect" onchange="playChannel(this.value)">
+          <option value="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8">Channel 1 (Test Stream)</option>
+          <option value="https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8">Channel 2 (Sample 2)</option>
+        </select>
+
+        <video id="video" controls autoplay muted></video>
+      </div>
+
+      <script>
+        const video = document.getElementById('video');
+        let hls = null;
+
+        function playChannel(url) {
+          if (Hls.isSupported()) {
+            if (hls) { hls.destroy(); }
+            hls = new Hls();
+            hls.loadSource(url);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+          } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = url;
+            video.play();
+          }
+        }
+
+        // ডিফল্ট প্রথম চ্যানেল চালানো
+        playChannel(document.getElementById('channelSelect').value);
+      </script>
+    </body>
     </html>
   `);
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log('Server running on port ' + PORT);
 });
