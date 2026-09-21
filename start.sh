@@ -5,7 +5,7 @@ mkdir -p /app/live
 
 # লোগো ডাউনলোড (না থাকলে)
 if [ ! -f /app/logo.png ]; then
-  wget -q -O /app/logo.png "https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/HBO_Max_Logo.svg/320px-HBO_Max_Logo.svg.png"
+  wget -q -O /app/logo.png "https://e1.pngegg.com/pngimages/259/287/png-clipart-metrostation-tv-logo-thumbnail.png"
 fi
 
 # Nginx চালু
